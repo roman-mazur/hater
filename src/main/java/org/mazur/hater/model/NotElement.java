@@ -5,6 +5,8 @@ package org.mazur.hater.model;
 
 import java.awt.Color;
 
+import org.mazur.hater.signals.SignalValue;
+
 /**
  * @author Roman Mazur (Stanfy - http://www.stanfy.com)
  *
@@ -13,8 +15,8 @@ public class NotElement extends AbstractElement {
 
   private static final long serialVersionUID = -6864546670231024303L;
 
-  public NotElement() {
-    super(1);
+  public NotElement(final SignalModelHolder sHolder) {
+    super(sHolder, 1);
   }
 
   @Override
@@ -33,10 +35,8 @@ public class NotElement extends AbstractElement {
   }
 
   @Override
-  public Boolean calculate() {
-    if (getInputs().isEmpty()) { return null; }
-    Boolean in = getInputs().get(0).getValue();
-    return in == null ? null : !in;
+  public SignalValue calculate() {
+    return getSignalModelHolder().getOperations().not(getInputs().get(0).getValue());
   }
 
 }

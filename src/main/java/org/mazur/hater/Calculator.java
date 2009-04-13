@@ -8,10 +8,14 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 import org.mazur.hater.model.AbstractElement;
 import org.mazur.hater.model.ModelContainer;
+import org.mazur.hater.model.OutElement;
+import org.mazur.hater.signals.SignalValue;
+import org.mazur.hater.signals.TripleSignal;
 
 /**
  * @author Roman Mazur (Stanfy - http://www.stanfy.com)
@@ -23,12 +27,14 @@ public class Calculator {
   
   private ModelContainer model;
   
-  private LinkedList<Map<AbstractElement, Boolean>> iterations = new LinkedList<Map<AbstractElement,Boolean>>();
+  private String lastMesssage;
+  
+  private LinkedList<Map<AbstractElement, SignalValue>> iterations = new LinkedList<Map<AbstractElement, SignalValue>>();
   
   /**
    * @return the iterations
    */
-  public LinkedList<Map<AbstractElement, Boolean>> getIterations() {
+  public LinkedList<Map<AbstractElement, SignalValue>> getIterations() {
     return iterations;
   }
 
@@ -36,7 +42,7 @@ public class Calculator {
     this.model = model;
   }
   
-  private boolean repeat(final Map<AbstractElement, Boolean> m1, final Map<AbstractElement, Boolean> m2) {
+  private boolean repeat(final Map<AbstractElement, SignalValue> m1, final Map<AbstractElement, SignalValue> m2) {
     boolean r = m1.entrySet().equals(m2.entrySet()) && m1.keySet().equals(m2.keySet());
     LOG.debug("Check repeat: " + r);
     return r;
@@ -54,7 +60,8 @@ public class Calculator {
     return res;
   }
   
-  public void process(final List<Boolean> inputValues) {
+  public void process(final List<SignalValue> inputValues) {
+    lastMesssage = null;
     LOG.info("Start calculations for " + inputValues);
     iterations.clear();
     
@@ -63,10 +70,10 @@ public class Calculator {
     
     // init
     int i = 0;
-    for (Boolean v : inputValues) {
+    for (SignalValue v : inputValues) {
       model.getInputs().get(i++).setValue(v);
     }
-    HashMap<AbstractElement, Boolean> currentResult = new HashMap<AbstractElement, Boolean>(all.size());
+    HashMap<AbstractElement, SignalValue> currentResult = new HashMap<AbstractElement, SignalValue>(all.size());
     for (AbstractElement el : model.getMainElemets()) {
       el.setValue(el.getInitValue());
       currentResult.put(el, el.getValue());
@@ -79,26 +86,53 @@ public class Calculator {
     int maxCount = maxIterations();
     
     int count = 0;
+    boolean repeatedResult = false;
     do {
       iterations.add(currentResult);
-      currentResult = new HashMap<AbstractElement, Boolean>(all.size());
+      currentResult = new HashMap<AbstractElement, SignalValue>(all.size());
       LOG.debug("Iteration " + count);
       for (AbstractElement el : all) {
-        Boolean nv = el.calculate();
+        SignalValue nv = el.calculate();
         LOG.debug(el.getLabel() + " -> " + nv);
         currentResult.put(el, nv);
       }
       for (AbstractElement el : all) {
-        Boolean b = currentResult.get(el);
+        SignalValue b = currentResult.get(el);
         el.setValue(b);
         LOG.debug("Set value " + b + " for " + el.getLabel());
       }
       count++;
-    } while (!repeat(iterations.getLast(), currentResult) && count <= maxCount);
+      repeatedResult = repeat(iterations.getLast(), currentResult);
+    } while (!repeatedResult && count <= maxCount);
+    
+    LOG.info("Total count of iterations: " + iterations.size());
+    
+    if (!repeatedResult) {
+      StringBuilder sb = new StringBuilder("Generator is detected on elements: ");
+      for (AbstractElement el : iterations.getLast().keySet()) {
+        SignalValue prevValue = iterations.getLast().get(el);
+        SignalValue currentValue = currentResult.get(el);
+        if (!prevValue.equals(currentValue)) {
+          sb.append(el.getLabel()).append(", ");
+        }
+      }
+      lastMesssage = sb.toString();
+    } else {
+      StringBuilder sb = new StringBuilder();
+      for (Entry<AbstractElement, SignalValue> e : iterations.getLast().entrySet()) {
+        if (e.getValue() == TripleSignal.UNDEFINED && !(e.getKey() instanceof OutElement)) {
+          sb.append(e.getKey().getLabel()).append(", ");
+        }
+      }
+      if (sb.length() > 0) {
+        sb.insert(0, "Generator is detected on elements: ");
+        lastMesssage = sb.toString();
+      }
+    }
     
   }
   
-  public Map<AbstractElement, Boolean> getLastValues() {
+  public Map<AbstractElement, SignalValue> getLastValues() {
     return iterations.getLast();
   }
   
@@ -106,4 +140,7 @@ public class Calculator {
     return iterations.size();
   }
   
+  public String getMessage() {
+    return lastMesssage;
+  }
 }

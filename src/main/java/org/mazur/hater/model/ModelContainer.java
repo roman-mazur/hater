@@ -3,18 +3,27 @@
  */
 package org.mazur.hater.model;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeMap;
+
+import org.mazur.hater.signals.BinOperations;
+import org.mazur.hater.signals.SignalOperations;
+import org.mazur.hater.signals.SignalValue;
+import org.mazur.hater.signals.TripleOperations;
 
 /**
  * @author Roman Mazur (Stanfy - http://www.stanfy.com)
  *
  */
-public class ModelContainer implements Serializable {
+public class ModelContainer implements Serializable, SignalModelHolder {
 
   private static final long serialVersionUID = -7481732169065168420L;
 
@@ -97,4 +106,41 @@ public class ModelContainer implements Serializable {
   public List<AbstractElement> getOutputs() {
     return outputs;
   }
+
+  @SuppressWarnings("unchecked")
+  public enum SignalModel {
+    BIN(new BinOperations()), TRIPLE(new TripleOperations());
+    private SignalOperations operations;
+    private SignalModel(final SignalOperations operaions) {
+      this.operations = operaions;
+    }
+    public String getText() { return toString(); }
+  }
+  
+  private SignalModel currentModel = SignalModel.TRIPLE;
+  
+  @SuppressWarnings("unchecked")
+  public SignalOperations<SignalValue> getOperations() {
+    return currentModel.operations;
+  }
+  
+  public void setSignalModel(final SignalModel model) { this.currentModel = model; }
+  
+  public SignalModel getSignalModel() { return this.currentModel; }
+
+  public void save(final OutputStream stream) throws IOException {
+    ObjectOutputStream out = new ObjectOutputStream(stream);
+    out.writeObject(this);
+    out.close();
+  }
+  
+  public static ModelContainer load(final InputStream stream) throws IOException {
+    ObjectInputStream in = new ObjectInputStream(stream);
+    try {
+      return (ModelContainer)in.readObject();
+    } catch (ClassNotFoundException e) {
+      return null;
+    }
+  }
+  
 }

@@ -3,6 +3,8 @@
  */
 package org.mazur.hater.model;
 
+import org.mazur.hater.signals.SignalValue;
+
 
 /**
  * @author Roman Mazur (Stanfy - http://www.stanfy.com)
@@ -12,8 +14,8 @@ public class InElement extends MarginElement {
 
   private static final long serialVersionUID = -474856657086547036L;
 
-  public InElement() {
-    super(0);
+  public InElement(final SignalModelHolder sHolder) {
+    super(sHolder, 0);
   }
   
   @Override
@@ -27,7 +29,7 @@ public class InElement extends MarginElement {
   }
   
   @Override
-  public Boolean calculate() {
+  public SignalValue calculate() {
     return getValue();
   }
 }

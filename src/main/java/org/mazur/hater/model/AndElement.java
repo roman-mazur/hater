@@ -5,6 +5,8 @@ package org.mazur.hater.model;
 
 import java.awt.Color;
 
+import org.mazur.hater.signals.SignalValue;
+
 /**
  * "And" element.
  * @author Roman Mazur (Stanfy - http://www.stanfy.com)
@@ -14,8 +16,8 @@ public class AndElement extends AbstractElement {
 
   private static final long serialVersionUID = 9111308044640127297L;
 
-  public AndElement(final int inCount) {
-    super(inCount);
+  public AndElement(final SignalModelHolder sHolder, final int inCount) {
+    super(sHolder, inCount);
   }
 
   @Override
@@ -29,14 +31,8 @@ public class AndElement extends AbstractElement {
   }
 
   @Override
-  public Boolean calculate() {
-    if (getInputs().isEmpty()) { return null; }
-    boolean result = true;
-    for (AbstractElement input : getInputs()) {
-      if (input.getValue() == null) { return null; }
-      result &= input.getValue();
-    }
-    return result;
+  public SignalValue calculate() {
+    return getSignalModelHolder().getOperations().and(getInputSignals());
   }
 
 }
