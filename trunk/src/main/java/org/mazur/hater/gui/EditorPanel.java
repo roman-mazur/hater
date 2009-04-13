@@ -10,12 +10,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.IOError;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,6 +29,7 @@ import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JToolBar;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
@@ -38,6 +37,7 @@ import javax.swing.table.DefaultTableModel;
 import org.apache.log4j.Logger;
 import org.jgraph.JGraph;
 import org.jgraph.graph.DefaultCellViewFactory;
+import org.jgraph.graph.DefaultEdge;
 import org.jgraph.graph.DefaultGraphModel;
 import org.jgraph.graph.GraphLayoutCache;
 import org.jgraph.graph.GraphModel;
@@ -55,6 +55,7 @@ import org.mazur.hater.model.NotElement;
 import org.mazur.hater.model.OrElement;
 import org.mazur.hater.model.OutElement;
 import org.mazur.hater.model.AbstractElement.DefaultElementView;
+import org.mazur.hater.signals.SignalValue;
 
 /**
  * @author Roman Mazur (Stanfy - http://www.stanfy.com)
@@ -71,7 +72,7 @@ public class EditorPanel extends JPanel {
   /** JGraph panel. */
   private JGraph jgraph = new JGraph();
   
-  private ModelContainer modelContainer = new ModelContainer();
+  private ModelContainer modelContainer;
   
   private JToolBar toolsBar = new JToolBar();
 
@@ -86,7 +87,7 @@ public class EditorPanel extends JPanel {
 
   private GraphContainer graphContainer = new GraphContainer();
   
-  private static enum ElementsTypesEnum {
+  private enum ElementsTypesEnum {
     AND2(ElementType.AND, 2),
     NAND2(ElementType.NAND, 2),
     NOR2(ElementType.NOR, 2),
@@ -119,15 +120,15 @@ public class EditorPanel extends JPanel {
       return type.getLabel() + "(" + inCount + ")";
     }
     
-    public AbstractElement createElement() {
+    public AbstractElement createElement(final ModelContainer modelContainer) {
       switch (type) {
-      case AND: return new AndElement(inCount);
-      case OR: return new OrElement(inCount);
-      case NAND: return new NandElement(inCount);
-      case NOR: return new NorElement(inCount);
-      case NOT: return new NotElement();
-      case IN: return new InElement();
-      case OUT: return new OutElement();
+      case AND: return new AndElement(modelContainer, inCount);
+      case OR: return new OrElement(modelContainer, inCount);
+      case NAND: return new NandElement(modelContainer, inCount);
+      case NOR: return new NorElement(modelContainer, inCount);
+      case NOT: return new NotElement(modelContainer);
+      case IN: return new InElement(modelContainer);
+      case OUT: return new OutElement(modelContainer);
       default:
         return null;
       }
@@ -197,8 +198,8 @@ public class EditorPanel extends JPanel {
     
     private List<AbstractElement> elements = new LinkedList<AbstractElement>();
     
-    private LinkedList<List<Boolean>> values = new LinkedList<List<Boolean>>(),
-                                      results = new LinkedList<List<Boolean>>();
+    private LinkedList<List<SignalValue>> values = new LinkedList<List<SignalValue>>(),
+                                          results = new LinkedList<List<SignalValue>>();
     
     private JTable table;
     private DefaultTableModel model = new DefaultTableModel() {
@@ -220,55 +221,44 @@ public class EditorPanel extends JPanel {
       }
       @Override
       public Object getValueAt(final int row, final int column) {
-        List<Boolean> vv;
+        List<SignalValue> vv;
         if (column < modelContainer.getInputs().size()) {
           vv = values.get(row); 
-          return vv.size() <= column ? "" : vv.get(column) == null ? "" : vv.get(column) ? "1" : "0";
+          return vv.size() <= column ? "" : vv.get(column) == null ? "" : vv.get(column).getPrintable();
         }
         int i = column - modelContainer.getInputs().size();
         vv = results.get(row);
-        return vv.size() <= i ? "" : vv.get(i) == null ? "x" : vv.get(i) ? "1" : "0";
+        return vv.size() <= i ? "" : vv.get(i) == null ? "" : vv.get(i).getPrintable();
       }
       @Override
       public void setValueAt(final Object value, final int row, final int column) {
         if (column < modelContainer.getInputs().size()) {
-          List<Boolean> vv = values.get(row); 
+          List<SignalValue> vv = values.get(row); 
           if (vv.size() > column) {
-            vv.set(column, "1".equals(value));
+            vv.set(column, modelContainer.getOperations().parseValue((String)value));
           }
         }
       }
     };
     
-    private List<Boolean> inc(final List<Boolean> prev) {
+    private List<SignalValue> inc(final List<SignalValue> prev) {
       int l = modelContainer.getInputs().size();
-      List<Boolean> result = new ArrayList<Boolean>(l);
-      for (int i = 0; i < l; i++) { result.add(false); }
-      if (prev == null) { return result; }
-      for (int i = 0; i < l; i++) { result.set(i, prev.get(i)); }
-      for (int i = l - 1; i >= 0; i--) {
-        result.set(i, !result.get(i));
-        if (result.get(i)) { break; }
-      }
-      return result;
+      return modelContainer.getOperations().nextTerm(prev, l);
     }
     
-    @SuppressWarnings("unused")
     private void addAutoValue() {
       values.add(inc(values.isEmpty() ? null : values.getLast()));
-      ArrayList<Boolean> temp = new ArrayList<Boolean>(elements.size());
-      for (AbstractElement e : elements) { temp.add(null); } 
-      results.add(temp);
+      results.add(new LinkedList<SignalValue>());
       model.fireTableStructureChanged();
     }
     
     private void addValue() {
-      LinkedList<Boolean> vv = new LinkedList<Boolean>();
+      LinkedList<SignalValue> vv = new LinkedList<SignalValue>();
       for (int i = 0; i < modelContainer.getInputs().size(); i++) {
         vv.add(null);
       }
       values.add(vv);
-      results.add(new LinkedList<Boolean>());
+      results.add(new LinkedList<SignalValue>());
       model.fireTableStructureChanged();
     }
 
@@ -325,29 +315,41 @@ public class EditorPanel extends JPanel {
           if (values.isEmpty()) { return; }
           int index = e.getLastIndex();
           if (index < 0) { return; }
-          List<Boolean> vv = values.get(index);
+          List<SignalValue> vv = values.get(index);
           LOG.debug("------ Values: " + vv + ", " + index);
           calculator.process(vv);
           int i = 0;
-          Map<AbstractElement, Boolean> cResults = calculator.getLastValues();
-          List<Boolean> prevValues = results.get(index);
+          Map<AbstractElement, SignalValue> cResults = calculator.getLastValues();
+          List<SignalValue> prevValues = results.get(index);
           for (AbstractElement el : elements) {
             LOG.debug("Copy value for " + el + ": " + cResults.get(el));
-            prevValues.set(i++, cResults.get(el));
+            if (i < prevValues.size()) {
+              prevValues.set(i, cResults.get(el));
+            } else {
+              prevValues.add(cResults.get(el));
+            }
+            i++;
           }
           LOG.debug("Values size: " + prevValues);
+          if (calculator.getMessage() != null) {
+            JOptionPane.showMessageDialog(EditorPanel.this, calculator.getMessage());
+          }
         }
       });
       table.addMouseListener(new MouseAdapter() {
         @Override
         public void mouseClicked(final MouseEvent e) {
           if (e.getButton() == MouseEvent.BUTTON3) {
-            int index = table.getSelectedRow();
-            if (index < 0) { return; }
-            List<Boolean> vv = values.get(index);
-            LOG.debug("------ Values: " + vv + ", " + index);
-            calculator.process(vv);
-            new TimeGraphsFrame(calculator, elements).setVisible(true);
+            SwingUtilities.invokeLater(new Runnable() {
+              public void run() {
+                int index = table.getSelectedRow();
+                if (index < 0) { return; }
+                List<SignalValue> vv = values.get(index);
+                LOG.debug("------ Values: " + vv + ", " + index);
+                calculator.process(vv);
+                new TimeGraphsFrame(calculator, elements).setVisible(true);
+              }
+            });
           }
         }
       });
@@ -360,8 +362,9 @@ public class EditorPanel extends JPanel {
   /**
    * Constructor.
    */
-  public EditorPanel() {
+  public EditorPanel(final ModelContainer modelContainer) {
     super(true);
+    this.modelContainer = modelContainer;
     setLayout(new BorderLayout());
     GraphModel model = new DefaultGraphModel();
     GraphLayoutCache view = new GraphLayoutCache(model,
@@ -389,6 +392,15 @@ public class EditorPanel extends JPanel {
     
     selectElemetnsFrame = new SelectElemetnsFrame(modelContainer);
     calculator = new Calculator(modelContainer);
+
+    for (AbstractElement element : this.modelContainer.getAllElemets()) {
+      jgraph.getGraphLayoutCache().insert(element.getView());
+    }
+    for (AbstractElement element : this.modelContainer.getAllElemets()) {
+      for (DefaultEdge edge : element.getView().getInputEdges()) {
+        jgraph.getGraphLayoutCache().insert(edge);
+      }
+    }
   }
   
   private void buildElementsBar() {
@@ -399,7 +411,7 @@ public class EditorPanel extends JPanel {
       btn.setAction(new AbstractAction(){
         private static final long serialVersionUID = 2662813835155743722L;
         public void actionPerformed(final ActionEvent e) {
-          lastCreatedElement = type.createElement();
+          lastCreatedElement = type.createElement(modelContainer);
         }
       });
       btn.setText(type.getLabel());

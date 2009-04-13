@@ -12,8 +12,8 @@ public abstract class MarginElement extends AbstractElement {
 
   private int marginNumber;
   
-  public MarginElement(final int inCount) {
-    super(inCount);
+  public MarginElement(final SignalModelHolder sHolder, final int inCount) {
+    super(sHolder, inCount);
   }
  
   /**

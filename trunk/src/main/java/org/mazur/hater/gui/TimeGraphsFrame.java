@@ -14,15 +14,16 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import org.apache.log4j.Logger;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.mazur.hater.Calculator;
 import org.mazur.hater.model.AbstractElement;
+import org.mazur.hater.signals.SignalValue;
 
 /**
  * @author Roman Mazur (Stanfy - http://www.stanfy.com)
@@ -30,6 +31,8 @@ import org.mazur.hater.model.AbstractElement;
  */
 public class TimeGraphsFrame extends JFrame {
 
+  private static final Logger LOG = Logger.getLogger(TimeGraphsFrame.class);
+  
   private static final long serialVersionUID = -8091758694981254124L;
   private Calculator calculator;
   
@@ -45,16 +48,15 @@ public class TimeGraphsFrame extends JFrame {
   }
   
   private JFreeChart prepareJFreeChart(final AbstractElement el) {
-//    int ticksCount = calculator.getIterationsCount();
     XYSeriesCollection xy = new XYSeriesCollection();
     XYSeries series = new XYSeries("");
     int counter = 0;
-    for (Map<AbstractElement, Boolean> values : calculator.getIterations()) {
-      Boolean v = values.get(el);
-      series.add(counter, v == null ? 0.5 : v ? 1 : 0);
-//      if (counter < ticksCount - 1) {
-//        series.add(counter + 1, v == null ? 0.5 : v ? 1 : 0);
-//      }
+    for (Map<AbstractElement, SignalValue> values : calculator.getIterations()) {
+      LOG.info(values);
+      series.add(counter, values.get(el).getDouble());
+      if (counter > 0) {
+        series.add(counter - 1, values.get(el).getDouble());
+      }
       counter++;
     }
     xy.addSeries(series);

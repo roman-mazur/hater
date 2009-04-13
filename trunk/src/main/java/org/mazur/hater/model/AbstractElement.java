@@ -12,16 +12,20 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.jgraph.graph.DefaultEdge;
 import org.jgraph.graph.DefaultGraphCell;
 import org.jgraph.graph.DefaultPort;
 import org.jgraph.graph.GraphConstants;
+import org.mazur.hater.signals.SignalValue;
 
 /**
  * @author Roman Mazur (Stanfy - http://www.stanfy.com)
  */
 public abstract class AbstractElement implements Serializable {
 
+  private static final Logger LOG = Logger.getLogger(AbstractElement.class);
+  
   private static final long serialVersionUID = 2224152428283941615L;
 
   private int inCount;
@@ -35,33 +39,46 @@ public abstract class AbstractElement implements Serializable {
   private DefaultElementView view;
   
   /** Value. */
-  private Boolean value = null, initValue = null;
+  private SignalValue value = null, initValue = null;
+  
+  private SignalModelHolder signalModelHolder;
+  
+  public AbstractElement(final SignalModelHolder sHolder, final int inCount) {
+    this.inCount = inCount;
+    inputs = new ArrayList<AbstractElement>(inCount);
+    outputs = new LinkedList<AbstractElement>();
+    signalModelHolder = sHolder;
+    value = signalModelHolder.getOperations().defaultValue();
+    initValue = signalModelHolder.getOperations().defaultValue();
+  }
+  
+  public SignalModelHolder getSignalModelHolder() { return signalModelHolder; }
   
   /**
    * @return the initValue
    */
-  public Boolean getInitValue() {
+  public SignalValue getInitValue() {
     return initValue;
   }
 
   /**
    * @param initValue the initValue to set
    */
-  public void setInitValue(final Boolean initValue) {
+  public void setInitValue(final SignalValue initValue) {
     this.initValue = initValue;
   }
 
   /**
    * @return the value
    */
-  public Boolean getValue() {
+  public SignalValue getValue() {
     return value;
   }
 
   /**
    * @param value the value to set
    */
-  public void setValue(Boolean value) {
+  public void setValue(SignalValue value) {
     this.value = value;
   }
 
@@ -108,12 +125,6 @@ public abstract class AbstractElement implements Serializable {
     this.outputs = outputs;
   }
 
-  public AbstractElement(final int inCount) {
-    this.inCount = inCount;
-    inputs = new ArrayList<AbstractElement>(inCount);
-    outputs = new LinkedList<AbstractElement>();
-  }
-  
   public abstract ElementType getElementType();
   public String getLabel() {
     return getElementType().getLabel() + "(" + inCount + ")-" + visibleNumber;
@@ -170,52 +181,14 @@ public abstract class AbstractElement implements Serializable {
     return getView().connect(el.getView());
   }
 
-  private String getValueStr(final Boolean v) {
-    return v == null ? "x" : v ? "1" : "0";
-  }
+  public abstract SignalValue calculate();
   
-  public String getValueStr() {
-    return getValueStr(value);
+  protected List<SignalValue> getInputSignals() {
+    List<SignalValue> values = new ArrayList<SignalValue>(inputs.size());
+    for (AbstractElement in : inputs) { values.add(in.getValue()); }
+    LOG.debug(getElementType() + " in signals: " + values);
+    return values;
   }
-  
-  public String getInitValueStr() {
-    return getValueStr(initValue);
-  }
-  
-  public boolean parseValue(final String v) {
-    if ("x".equalsIgnoreCase(v)) {
-      value = null;
-      return true;
-    }
-    if ("1".equals(v)) {
-      value = true;
-      return true;
-    }
-    if ("0".equals(v)) {
-      value = false;
-      return true;
-    }
-    return false;
-  }
-  
-  public boolean parseInitValue(final String v) {
-    if ("x".equalsIgnoreCase(v)) {
-      initValue = null;
-      return true;
-    }
-    if ("1".equals(v)) {
-      initValue = true;
-      return true;
-    }
-    if ("0".equals(v)) {
-      initValue = false;
-      return true;
-    }
-    return false;
-  }
-
-  public abstract Boolean calculate();
-  
   
   public int getChildrenDepth(final HashSet<AbstractElement> visited) {
     if (outputs.isEmpty()) { return 0; }
@@ -235,6 +208,8 @@ public abstract class AbstractElement implements Serializable {
     
     private AbstractElement element;
     
+    private List<DefaultEdge> inputEdges = new LinkedList<DefaultEdge>();
+    
     public DefaultElementView(final AbstractElement element, final Point point) {
       this.element = element;
       GraphConstants.setBounds(getAttributes(), 
@@ -253,6 +228,8 @@ public abstract class AbstractElement implements Serializable {
     
     public AbstractElement getElement() { return element; }
     
+    public List<DefaultEdge> getInputEdges() { return inputEdges; }
+    
     private Object connect(final DefaultElementView v) {
       DefaultEdge edge = new DefaultEdge();
       DefaultPort sPort = (DefaultPort)v.getChildAt(1); 
@@ -264,6 +241,7 @@ public abstract class AbstractElement implements Serializable {
       
       GraphConstants.setLineEnd(edge.getAttributes(), GraphConstants.ARROW_CLASSIC);
       GraphConstants.setEndFill(edge.getAttributes(), true);
+      inputEdges.add(edge);
       return edge;
     }
     
