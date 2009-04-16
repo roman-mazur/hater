@@ -3,8 +3,8 @@
  */
 package org.mazur.hater;
 
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +73,7 @@ public class Calculator {
     for (SignalValue v : inputValues) {
       model.getInputs().get(i++).setValue(v);
     }
-    HashMap<AbstractElement, SignalValue> currentResult = new HashMap<AbstractElement, SignalValue>(all.size());
+    LinkedHashMap<AbstractElement, SignalValue> currentResult = new LinkedHashMap<AbstractElement, SignalValue>(all.size());
     for (AbstractElement el : model.getMainElemets()) {
       el.setValue(el.getInitValue());
       currentResult.put(el, el.getValue());
@@ -89,7 +89,7 @@ public class Calculator {
     boolean repeatedResult = false;
     do {
       iterations.add(currentResult);
-      currentResult = new HashMap<AbstractElement, SignalValue>(all.size());
+      currentResult = new LinkedHashMap<AbstractElement, SignalValue>(all.size());
       LOG.debug("Iteration " + count);
       for (AbstractElement el : all) {
         SignalValue nv = el.calculate();
@@ -109,8 +109,11 @@ public class Calculator {
     
     if (!repeatedResult) {
       StringBuilder sb = new StringBuilder("Generator is detected on elements: ");
-      for (AbstractElement el : iterations.getLast().keySet()) {
-        SignalValue prevValue = iterations.getLast().get(el);
+      Map<AbstractElement, SignalValue> comparator = iterations.size() > 1
+        ? iterations.get(iterations.size() - 2)
+        : iterations.getLast();
+      for (AbstractElement el : comparator.keySet()) {
+        SignalValue prevValue = comparator.get(el);
         SignalValue currentValue = currentResult.get(el);
         if (!prevValue.equals(currentValue)) {
           sb.append(el.getLabel()).append(", ");
@@ -128,8 +131,8 @@ public class Calculator {
         sb.insert(0, "Generator is detected on elements: ");
         lastMesssage = sb.toString();
       }
+      iterations.add(currentResult);
     }
-    
   }
   
   public Map<AbstractElement, SignalValue> getLastValues() {
