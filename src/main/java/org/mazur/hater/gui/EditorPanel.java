@@ -21,6 +21,7 @@ import java.util.Map;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -116,9 +117,7 @@ public class EditorPanel extends JPanel {
       type = t; inCount = cnt;
     }
     
-    public String getLabel() {
-      return type.getLabel() + "(" + inCount + ")";
-    }
+    public String getLabel() { return type.getLabel() + "(" + inCount + ")"; }
     
     public AbstractElement createElement(final ModelContainer modelContainer) {
       switch (type) {
@@ -274,7 +273,7 @@ public class EditorPanel extends JPanel {
       add(BorderLayout.NORTH, new JLabel("Values table"));
       
       JPanel bottomBtns = new JPanel();
-      bottomBtns.setLayout(new GridLayout(4, 1));
+      bottomBtns.setLayout(new GridLayout(5, 1));
       JButton btn = new JButton("Add auto value");
       btn.addActionListener(new ActionListener() {
         public void actionPerformed(final ActionEvent e) { addAutoValue(); }
@@ -298,6 +297,19 @@ public class EditorPanel extends JPanel {
       btn = new JButton("Clear");
       btn.addActionListener(new ActionListener() {
         public void actionPerformed(ActionEvent e) { clear(); }
+      });
+      bottomBtns.add(btn);
+      btn = new JButton("Iterations");
+      btn.addActionListener(new ActionListener() {
+        public void actionPerformed(final ActionEvent e) {
+          int index = table.getSelectedRow();
+          if (index < 0) { return; }
+          if (values.isEmpty()) { return; }
+          calculator.process(values.get(index));
+          JFrame frame = new IterationsFrame(calculator);
+          frame.pack();
+          frame.setVisible(true);
+        }
       });
       bottomBtns.add(btn);
       add(BorderLayout.SOUTH, bottomBtns);
