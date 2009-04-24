@@ -8,7 +8,7 @@ import java.awt.Point;
 import java.awt.geom.Rectangle2D;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -190,12 +190,15 @@ public abstract class AbstractElement implements Serializable {
     return values;
   }
   
-  public int getChildrenDepth(final HashSet<AbstractElement> visited) {
+  public int getChildrenDepth(final HashMap<AbstractElement, Integer> visited) {
     if (outputs.isEmpty()) { return 0; }
     int result = 0;
-    visited.add(this);
+    Integer counter = visited.get(this);
+    counter = counter == null ? 1 : counter + 1;
+    visited.put(this, counter);
     for (AbstractElement el : outputs) {
-      if (visited.contains(el)) { continue; }
+      counter = visited.get(el);
+      if (counter != null && counter > 1) { continue; }
       int a = el.getChildrenDepth(visited);
       result = result < a ? a : result;
     }
