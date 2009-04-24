@@ -25,4 +25,7 @@ public interface SignalOperations<T extends SignalValue> {
   List<T> nextTerm(final List<T> values, final int l);
   
   T defaultValue();
+  
+  T prev(final T value);
+  T next(final T value);
 }

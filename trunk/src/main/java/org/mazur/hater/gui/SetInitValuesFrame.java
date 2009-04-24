@@ -49,6 +49,7 @@ public class SetInitValuesFrame extends JFrame {
     for (Entry<AbstractElement, JTextField> pair : fields.entrySet()) {
       SignalValue v = model.getOperations().defaultValue();
       pair.getKey().setInitValue(v);
+      pair.getKey().setValue(v);
       pair.getValue().setText(v.getPrintable());
     }
   }

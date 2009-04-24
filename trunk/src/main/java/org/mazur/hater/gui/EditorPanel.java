@@ -4,6 +4,7 @@
 package org.mazur.hater.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -21,6 +22,7 @@ import java.util.Map;
 
 import javax.swing.AbstractAction;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -240,6 +242,8 @@ public class EditorPanel extends JPanel {
       }
     };
     
+    private int lastSelectedIndex = -1;
+    
     private List<SignalValue> inc(final List<SignalValue> prev) {
       int l = modelContainer.getInputs().size();
       return modelContainer.getOperations().nextTerm(prev, l);
@@ -270,7 +274,17 @@ public class EditorPanel extends JPanel {
     public ValuesTablePanel() {
       super(true);
       setLayout(new BorderLayout());
-      add(BorderLayout.NORTH, new JLabel("Values table"));
+      JPanel topPanel = new JPanel();
+      topPanel.setLayout(new GridLayout(2, 1));
+      final JCheckBox checker = new JCheckBox("Reset initial values");
+      checker.addActionListener(new ActionListener() {
+        public void actionPerformed(final ActionEvent e) {
+          calculator.setResetInitValues(checker.isSelected());
+        }
+      });
+      topPanel.add(checker);
+      topPanel.add(new JLabel("Values table"));
+      add(BorderLayout.NORTH, topPanel);
       
       JPanel bottomBtns = new JPanel();
       bottomBtns.setLayout(new GridLayout(5, 1));
@@ -305,7 +319,7 @@ public class EditorPanel extends JPanel {
           int index = table.getSelectedRow();
           if (index < 0) { return; }
           if (values.isEmpty()) { return; }
-          calculator.process(values.get(index));
+          //calculator.process(values.get(index));
           JFrame frame = new IterationsFrame(calculator);
           frame.pack();
           frame.setVisible(true);
@@ -325,11 +339,15 @@ public class EditorPanel extends JPanel {
       table.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
         public void valueChanged(final ListSelectionEvent e) {
           if (values.isEmpty()) { return; }
-          int index = e.getLastIndex();
+          int index = table.getSelectedRow();
           if (index < 0) { return; }
+          LOG.debug("!!!!! " + lastSelectedIndex + " vs " + index);
+          if (lastSelectedIndex == index) { return; }
+          lastSelectedIndex = index;
           List<SignalValue> vv = values.get(index);
           LOG.debug("------ Values: " + vv + ", " + index);
           calculator.process(vv);
+          infoLabel.setText("Length of the crirical path: " + calculator.getCriticalPath());
           int i = 0;
           Map<AbstractElement, SignalValue> cResults = calculator.getLastValues();
           List<SignalValue> prevValues = results.get(index);
@@ -344,7 +362,10 @@ public class EditorPanel extends JPanel {
           }
           LOG.debug("Values size: " + prevValues);
           if (calculator.getMessage() != null) {
-            JOptionPane.showMessageDialog(EditorPanel.this, calculator.getMessage());
+            //JOptionPane.showMessageDialog(EditorPanel.this, calculator.getMessage());
+            generatorInfoLabel.setText(calculator.getMessage());
+          } else {
+            generatorInfoLabel.setText("");
           }
         }
       });
@@ -371,6 +392,8 @@ public class EditorPanel extends JPanel {
   
   private ValuesTablePanel valuesPanel;
   
+  private JLabel infoLabel = new JLabel("[info]"), generatorInfoLabel = new JLabel();
+  
   /**
    * Constructor.
    */
@@ -389,9 +412,17 @@ public class EditorPanel extends JPanel {
     JScrollPane scroll = new JScrollPane();
     scroll.getViewport().add(jgraph);
 
+    JPanel mainPanel = new JPanel();
+    mainPanel.setLayout(new BorderLayout());
+    JPanel infoPanel = new JPanel();
+    infoPanel.add(infoLabel); infoPanel.add(generatorInfoLabel);
+    generatorInfoLabel.setForeground(Color.RED);
+    mainPanel.add(BorderLayout.NORTH, infoPanel);
+    mainPanel.add(BorderLayout.CENTER, scroll);
+    
     JSplitPane split = new JSplitPane();
     split.setOrientation(JSplitPane.HORIZONTAL_SPLIT);
-    split.setRightComponent(scroll);
+    split.setRightComponent(mainPanel);
     
     buildElementsBar();
     add(BorderLayout.EAST, toolsBar);
