@@ -10,7 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.swing.JFrame;
+
 import org.apache.log4j.Logger;
+import org.mazur.hater.gui.IterationsFrame;
 import org.mazur.hater.model.AbstractElement;
 import org.mazur.hater.model.ModelContainer;
 import org.mazur.hater.model.OutElement;
@@ -55,7 +58,7 @@ public class Calculator {
     this.model = model;
   }
   
-  private boolean repeat(final Map<AbstractElement, SignalValue> m1, final Map<AbstractElement, SignalValue> m2) {
+  protected boolean repeat(final Map<AbstractElement, SignalValue> m1, final Map<AbstractElement, SignalValue> m2) {
     boolean r = m1.entrySet().equals(m2.entrySet()) && m1.keySet().equals(m2.keySet());
     LOG.debug("Check repeat: " + r);
     return r;
@@ -68,6 +71,14 @@ public class Calculator {
     return criticalPath;
   }
 
+  protected void setCriticalPath(final int value) {
+    this.criticalPath = value;
+  }
+  
+  protected ModelContainer getModel() {
+    return model;
+  }
+  
   private int maxIterations() {
     int res = 0;
     for (AbstractElement in : model.getInputs()) {
@@ -75,9 +86,32 @@ public class Calculator {
       LOG.debug("From " + in.getLabel() + ": " + a);
       res = res < a ? a : res;
     }
-    criticalPath = res - 1;
+    setCriticalPath(res - 1);
     LOG.debug("Critical way: " + res);
     return res;
+  }
+  
+  protected void setLastMesssage(String lastMesssage) {
+    this.lastMesssage = lastMesssage;
+  }
+  
+  protected LinkedHashMap<AbstractElement, SignalValue> init(final List<SignalValue> inputValues, final int allSize) {
+    int i = 0;
+    for (SignalValue v : inputValues) {
+      model.getInputs().get(i++).setValue(v);
+    }
+    LinkedHashMap<AbstractElement, SignalValue> currentResult = new LinkedHashMap<AbstractElement, SignalValue>(allSize);
+    LOG.debug("start values:");
+    for (AbstractElement el : model.getMainElemets()) {
+      if (resetInitValues || el.getValue() == null) { el.setValue(el.getInitValue()); }
+      LOG.debug(el.getValue());
+      currentResult.put(el, el.getValue());
+    }
+    for (AbstractElement el : model.getOutputs()) {
+      el.setValue(null);
+      currentResult.put(el, el.getValue());
+    }
+    return currentResult;
   }
   
   public void process(final List<SignalValue> inputValues) {
@@ -90,22 +124,8 @@ public class Calculator {
     all.addAll(model.getOutputs());
     
     // init
-    int i = 0;
-    for (SignalValue v : inputValues) {
-      model.getInputs().get(i++).setValue(v);
-    }
-    LinkedHashMap<AbstractElement, SignalValue> currentResult = new LinkedHashMap<AbstractElement, SignalValue>(all.size());
-    LOG.debug("start values:");
-    for (AbstractElement el : model.getMainElemets()) {
-      if (resetInitValues || el.getValue() == null) { el.setValue(el.getInitValue()); }
-      LOG.debug(el.getValue());
-      currentResult.put(el, el.getValue());
-    }
-    for (AbstractElement el : model.getOutputs()) {
-      el.setValue(null);
-      currentResult.put(el, el.getValue());
-    }
-   
+    LinkedHashMap<AbstractElement, SignalValue> currentResult = init(inputValues, all.size());
+    
     int maxCount = maxIterations();
     
     int count = 0;
@@ -182,5 +202,9 @@ public class Calculator {
   
   public String getMessage() {
     return lastMesssage;
+  }
+  
+  public JFrame getIterationsFrame() {
+    return new IterationsFrame(this);
   }
 }

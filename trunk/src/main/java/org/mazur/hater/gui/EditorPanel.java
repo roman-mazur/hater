@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.AbstractAction;
+import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
@@ -45,6 +46,8 @@ import org.jgraph.graph.DefaultGraphModel;
 import org.jgraph.graph.GraphLayoutCache;
 import org.jgraph.graph.GraphModel;
 import org.mazur.hater.Calculator;
+import org.mazur.hater.EventsCalculator;
+import org.mazur.hater.RangeCalculator;
 import org.mazur.hater.gui.SelectElemetnsFrame.SelectListener;
 import org.mazur.hater.model.AbstractElement;
 import org.mazur.hater.model.AndElement;
@@ -320,7 +323,7 @@ public class EditorPanel extends JPanel {
           if (index < 0) { return; }
           if (values.isEmpty()) { return; }
           //calculator.process(values.get(index));
-          JFrame frame = new IterationsFrame(calculator);
+          JFrame frame = calculator.getIterationsFrame();
           frame.pack();
           frame.setVisible(true);
         }
@@ -415,7 +418,9 @@ public class EditorPanel extends JPanel {
     JPanel mainPanel = new JPanel();
     mainPanel.setLayout(new BorderLayout());
     JPanel infoPanel = new JPanel();
-    infoPanel.add(infoLabel); infoPanel.add(generatorInfoLabel);
+    Box b = Box.createVerticalBox();
+    b.add(infoLabel); b.add(generatorInfoLabel);
+    infoPanel.add(b);
     generatorInfoLabel.setForeground(Color.RED);
     mainPanel.add(BorderLayout.NORTH, infoPanel);
     mainPanel.add(BorderLayout.CENTER, scroll);
@@ -434,7 +439,7 @@ public class EditorPanel extends JPanel {
     add(BorderLayout.CENTER, split);
     
     selectElemetnsFrame = new SelectElemetnsFrame(modelContainer);
-    calculator = new Calculator(modelContainer);
+    calculator = new EventsCalculator(modelContainer); //new RangeCalculator(modelContainer);//new Calculator(modelContainer);
 
     for (AbstractElement element : this.modelContainer.getAllElemets()) {
       jgraph.getGraphLayoutCache().insert(element.getView());

@@ -17,6 +17,7 @@ public class NandElement extends AndElement {
 
   public NandElement(final SignalModelHolder sHolder, final int inCount) {
     super(sHolder, inCount);
+    setDelay(2);
   }
 
   @Override

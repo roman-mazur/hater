@@ -17,6 +17,7 @@ public class NorElement extends OrElement {
 
   public NorElement(final SignalModelHolder sHolder, final int inCount) {
     super(sHolder, inCount);
+    setDelay(2);
   }
 
   @Override
