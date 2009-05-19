@@ -43,14 +43,15 @@ public class SetInitValuesFrame extends JFrame {
   
   private JPanel mainPanel, choisePanel;
   
-  private HashMap<AbstractElement, JTextField> fields = new HashMap<AbstractElement, JTextField>();
+  private HashMap<AbstractElement, FieldsSet> fields = new HashMap<AbstractElement, FieldsSet>();
   
   private void updateAllInitValues() {
-    for (Entry<AbstractElement, JTextField> pair : fields.entrySet()) {
+    for (Entry<AbstractElement, FieldsSet> pair : fields.entrySet()) {
       SignalValue v = model.getOperations().defaultValue();
       pair.getKey().setInitValue(v);
       pair.getKey().setValue(v);
-      pair.getValue().setText(v.getPrintable());
+      pair.getValue().initField.setText(v.getPrintable());
+      pair.getValue().delayField.setText(String.valueOf(pair.getKey().getDelay()));
     }
   }
   
@@ -113,23 +114,43 @@ public class SetInitValuesFrame extends JFrame {
       mainPanel.setLayout(new BorderLayout());
       mainPanel.add(BorderLayout.CENTER, new JLabel("No elemets."));
     } else {
-      mainPanel.setLayout(new GridLayout(elements.size(), 2));
+      mainPanel.setLayout(new GridLayout(elements.size(), 4));
       for (final AbstractElement e : model.getMainElemets()) {
         mainPanel.add(new JLabel(e.getLabel()));
-        final JTextField field = new JTextField(e.getInitValue().getPrintable());
-        field.addActionListener(new ActionListener() {
+        final FieldsSet newSet = new FieldsSet();
+        newSet.initField = new JTextField(e.getInitValue().getPrintable());
+        newSet.initField.addActionListener(new ActionListener() {
           public void actionPerformed(final ActionEvent event) {
-            SignalValue nv = e.getSignalModelHolder().getOperations().parseValue(field.getText());
+            SignalValue nv = e.getSignalModelHolder().getOperations().parseValue(newSet.initField.getText());
             if (nv != null) { e.setInitValue(nv); }
-            field.setText(e.getInitValue().getPrintable());
+            newSet.initField.setText(e.getInitValue().getPrintable());
           }
         });
-        mainPanel.add(field);
-        fields.put(e, field);
+        mainPanel.add(newSet.initField);
+        mainPanel.add(new JLabel("delay"));
+        LOG.debug("e: " + e + " delay: " + e.getDelay());
+        newSet.delayField = new JTextField(String.valueOf(e.getDelay()));;
+        newSet.delayField.addActionListener(new ActionListener() {
+          @Override
+          public void actionPerformed(final ActionEvent event) {
+            int d = e.getDelay();
+            try {
+              d = Integer.parseInt(newSet.delayField.getText());
+            } catch (Exception e) {}
+            e.setDelay(d);
+            newSet.delayField.setText(String.valueOf(d));
+          }
+        });
+        mainPanel.add(newSet.delayField);
+        fields.put(e, newSet);
       }
     }
     pack();
     setVisible(true);
+  }
+  
+  private static class FieldsSet {
+    private JTextField initField, delayField;
   }
   
 }

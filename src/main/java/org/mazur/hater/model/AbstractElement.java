@@ -41,6 +41,9 @@ public abstract class AbstractElement implements Serializable {
   /** Value. */
   private SignalValue value = null, initValue = null;
   
+  /** Element delay. */
+  private int delay = 1;
+  
   private SignalModelHolder signalModelHolder;
   
   public AbstractElement(final SignalModelHolder sHolder, final int inCount) {
@@ -50,9 +53,17 @@ public abstract class AbstractElement implements Serializable {
     signalModelHolder = sHolder;
     value = signalModelHolder.getOperations().defaultValue();
     initValue = signalModelHolder.getOperations().defaultValue();
+    setDelay(1);
   }
   
   public SignalModelHolder getSignalModelHolder() { return signalModelHolder; }
+  
+  public void setDelay(final int delay) {
+    LOG.debug("SET DELAY: " + delay);
+    this.delay = delay;
+  }
+  
+  public int getDelay() { return delay; }
   
   /**
    * @return the initValue
@@ -205,6 +216,22 @@ public abstract class AbstractElement implements Serializable {
     return result + 1;
   }
   
+  public int getCycleDepth(final HashMap<AbstractElement, Integer> visited) {
+    if (outputs.isEmpty()) { return 0; }
+    int result = 0;
+    Integer counter = visited.get(this);
+    counter = counter == null ? 1 : counter + 1;
+    visited.put(this, counter);
+    for (AbstractElement el : outputs) {
+      Integer c = visited.get(el);
+      if (c != null && c > 1) { continue; }
+      int a = el.getCycleDepth(visited);
+      result = result < a ? a : result;
+    }
+    if (counter > 1) { result++; }
+    return result;
+  }
+  
   public static class DefaultElementView extends DefaultGraphCell {
     /** serialVersionUID. */
     private static final long serialVersionUID = -6992599972368530559L;
@@ -252,5 +279,9 @@ public abstract class AbstractElement implements Serializable {
       return element.getViewColor();
     }
   }
-  
+
+  @Override
+  public String toString() {
+    return "[" + getLabel() + " " + getElementType() + "]";
+  }
 }
