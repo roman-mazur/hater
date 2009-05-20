@@ -99,6 +99,7 @@ public class EditorPanel extends JPanel {
     NOR2(ElementType.NOR, 2),
     OR2(ElementType.OR, 2),
     OR4(ElementType.OR, 4),
+    NOR3(ElementType.NOR, 3),
     NOT(ElementType.NOT) {
       @Override
       public String getLabel() { return ElementType.NOT.getLabel(); }
