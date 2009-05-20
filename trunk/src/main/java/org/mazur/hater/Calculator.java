@@ -41,6 +41,13 @@ public class Calculator {
   private boolean resetInitValues = false;
   
   /**
+   * @return the resetInitValues
+   */
+  protected boolean isResetInitValues() {
+    return resetInitValues;
+  }
+
+  /**
    * @param resetInitValues the resetInitValues to set
    */
   public void setResetInitValues(final boolean resetInitValues) {

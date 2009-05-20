@@ -30,9 +30,10 @@ public class EventsIterationsFrame extends JFrame {
     table.setModel(new AbstractTableModel() {
       private static final long serialVersionUID = -126345026888159672L;
       public int getRowCount() { return iterations.size(); }
-      public int getColumnCount() { return elemetnsArray.size() + 1; }
+      public int getColumnCount() { return elemetnsArray.size() + 2; }
       public String getColumnName(final int column) {
         if (column == 0) { return "Time"; }
+        if (column == getColumnCount() - 1) { return "Changes"; }
         return elemetnsArray.get(column - 1).getLabel(); 
       }
       @Override
@@ -40,6 +41,9 @@ public class EventsIterationsFrame extends JFrame {
       public Object getValueAt(final int row, final int column) {
         IterationContainer c = iterations.get(row);
         if (column == 0) { return String.valueOf(c.getTime()); }
+        if (column == getColumnCount() - 1) { 
+          return c.getChanges() != null ? c.getChanges().toString() : "<no>"; 
+        }
         return c.getValues().get(elemetnsArray.get(column - 1)).getPrintable();
       }
     });
